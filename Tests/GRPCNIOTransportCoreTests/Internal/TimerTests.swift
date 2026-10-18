@@ -113,4 +113,52 @@ internal final class TimerTests: XCTestCase {
     loop.advanceTime(by: .seconds(5))
     XCTAssertEqual(handler.counter.value, 15)
   }
+
+  func testZeroJitterKeepsThePeriodExact() {
+    for unit in [0.0, 0.5, 0.999] {
+      XCTAssertEqual(
+        Timer<CounterTimerHandler>.jittered(.seconds(15), jitter: 0, unit: unit),
+        .seconds(15)
+      )
+    }
+  }
+
+  func testJitterStaysInItsCorridor() {
+    let low = Timer<CounterTimerHandler>.jittered(.seconds(10), jitter: 0.3, unit: 0)
+    let high = Timer<CounterTimerHandler>.jittered(.seconds(10), jitter: 0.3, unit: 0.999_999)
+    XCTAssertEqual(low, .seconds(7))
+    XCTAssertLessThan(high, .seconds(13))
+    XCTAssertGreaterThan(high, .milliseconds(12_999))
+  }
+
+  func testJitteredIntervalsDiffer() {
+    let intervals = (0..<100).map { _ in
+      Timer<CounterTimerHandler>.jittered(.seconds(15), jitter: 0.3, unit: .random(in: 0..<1))
+    }
+    for interval in intervals {
+      XCTAssertGreaterThanOrEqual(interval, .milliseconds(10_500))
+      XCTAssertLessThan(interval, .milliseconds(19_500))
+    }
+    XCTAssertGreaterThan(Set(intervals.map(\.nanoseconds)).count, 50)
+  }
+
+  func testJitterIsClampedToTheDuration() {
+    XCTAssertEqual(Timer<CounterTimerHandler>.jittered(.seconds(10), jitter: 5, unit: 0), .seconds(0))
+    XCTAssertEqual(Timer<CounterTimerHandler>.jittered(.seconds(10), jitter: -1, unit: 0.7), .seconds(10))
+  }
+
+  /// The timer uses the jittered delay, not `duration`: of twenty timers, some fire before it.
+  func testAJitteredTimerDoesNotFireOnTheDuration() {
+    let loop = EmbeddedEventLoop()
+    defer { try! loop.close() }
+    let handlers = (0..<20).map { _ in CounterTimerHandler() }
+    let timers = handlers.map {
+      Timer(eventLoop: loop, duration: .seconds(10), repeating: false, jitter: 0.3, handler: $0)
+    }
+    timers.forEach { $0.start() }
+    loop.advanceTime(by: .milliseconds(9_990))
+    XCTAssertGreaterThan(handlers.filter { $0.counter.value > 0 }.count, 0)
+    loop.advanceTime(by: .seconds(4))
+    XCTAssertEqual(handlers.filter { $0.counter.value > 0 }.count, 20)
+  }
 }

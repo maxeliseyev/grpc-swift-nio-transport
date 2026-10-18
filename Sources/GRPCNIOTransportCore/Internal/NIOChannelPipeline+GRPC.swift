@@ -180,7 +180,8 @@ extension ChannelPipeline.SynchronousOperations {
       maxIdleTime: config.connection.maxIdleTime.map { TimeAmount($0) },
       keepaliveTime: config.connection.keepalive.map { TimeAmount($0.time) },
       keepaliveTimeout: config.connection.keepalive.map { TimeAmount($0.timeout) },
-      keepaliveWithoutCalls: config.connection.keepalive?.allowWithoutCalls ?? false
+      keepaliveWithoutCalls: config.connection.keepalive?.allowWithoutCalls ?? false,
+      keepaliveJitter: config.connection.keepalive?.jitter ?? 0
     )
 
     let multiplexer = try self.configureAsyncHTTP2Pipeline(

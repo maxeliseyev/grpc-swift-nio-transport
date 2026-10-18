@@ -67,11 +67,16 @@ extension HTTP2ClientTransport.Config {
     /// Whether the client sends keepalive pings when there are no calls in progress.
     public var allowWithoutCalls: Bool
 
+    /// How far each ping interval may stray from `time`, as a fraction of it (0...1).
+    /// Zero, the default, keeps the period exact.
+    public var jitter: Double
+
     /// Creates a new keepalive configuration.
-    public init(time: Duration, timeout: Duration, allowWithoutCalls: Bool) {
+    public init(time: Duration, timeout: Duration, allowWithoutCalls: Bool, jitter: Double = 0) {
       self.time = time
       self.timeout = timeout
       self.allowWithoutCalls = allowWithoutCalls
+      self.jitter = jitter
     }
   }
 

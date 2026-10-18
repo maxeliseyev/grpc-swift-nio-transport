@@ -99,12 +99,15 @@ package final class ClientConnectionHandler: ChannelInboundHandler, ChannelOutbo
   ///       is received.
   ///   - keepaliveWithoutCalls: Whether the client sends keep-alive pings when there are no calls
   ///       in progress.
+  ///   - keepaliveJitter: How far each keep-alive interval may stray from `keepaliveTime`, as a
+  ///       fraction of it.
   package init(
     eventLoop: any EventLoop,
     maxIdleTime: TimeAmount?,
     keepaliveTime: TimeAmount?,
     keepaliveTimeout: TimeAmount?,
-    keepaliveWithoutCalls: Bool
+    keepaliveWithoutCalls: Bool,
+    keepaliveJitter: Double = 0
   ) {
     self.eventLoop = eventLoop
     self.keepalivePingData = HTTP2PingData(withInteger: .random(in: .min ... .max))
@@ -126,6 +129,7 @@ package final class ClientConnectionHandler: ChannelInboundHandler, ChannelOutbo
         eventLoop: eventLoop,
         duration: keepaliveTime,
         repeating: true,
+        jitter: keepaliveJitter,
         handler: KeepaliveTimerHandlerView(self)
       )
       self.keepaliveTimeoutHandler = Timer(
