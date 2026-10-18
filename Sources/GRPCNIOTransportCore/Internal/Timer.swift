@@ -27,16 +27,27 @@ package final class Timer<Handler: NIOScheduledCallbackHandler> where Handler: S
   /// Whether this timer should repeat.
   private let repeating: Bool
 
+  /// How far each run may stray from `duration`, as a fraction of it (0...1). Zero keeps the
+  /// period exact, as upstream.
+  private let jitter: Double
+
   /// The handler to call when the timer fires.
   private let handler: Handler
 
   /// The currently scheduled callback if the timer is running.
   private var scheduledCallback: NIOScheduledCallback?
 
-  package init(eventLoop: any EventLoop, duration: TimeAmount, repeating: Bool, handler: Handler) {
+  package init(
+    eventLoop: any EventLoop,
+    duration: TimeAmount,
+    repeating: Bool,
+    jitter: Double = 0,
+    handler: Handler
+  ) {
     self.eventLoop = eventLoop
     self.duration = duration
     self.repeating = repeating
+    self.jitter = jitter
     self.handler = handler
     self.scheduledCallback = nil
   }
@@ -53,7 +64,17 @@ package final class Timer<Handler: NIOScheduledCallbackHandler> where Handler: S
     self.eventLoop.assertInEventLoop()
     self.scheduledCallback?.cancel()
     // Only throws if the event loop is shutting down, so we'll just swallow the error here.
-    self.scheduledCallback = try? self.eventLoop.scheduleCallback(in: self.duration, handler: self)
+    let delay = Self.jittered(self.duration, jitter: self.jitter, unit: .random(in: 0..<1))
+    self.scheduledCallback = try? self.eventLoop.scheduleCallback(in: delay, handler: self)
+  }
+
+  /// `duration` scaled by a factor in `[1 - jitter, 1 + jitter)`, picked by `unit` in `[0, 1)`.
+  /// A strictly periodic ping is a rhythm an observer reads with one rule; this smears it.
+  package static func jittered(_ duration: TimeAmount, jitter: Double, unit: Double) -> TimeAmount {
+    let jitter = min(max(jitter, 0), 1)
+    guard jitter > 0 else { return duration }
+    let factor = 1 - jitter + 2 * jitter * unit
+    return .nanoseconds(Int64(Double(duration.nanoseconds) * factor))
   }
 }
 

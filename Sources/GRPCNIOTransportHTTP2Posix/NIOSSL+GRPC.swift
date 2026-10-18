@@ -220,7 +220,7 @@ extension TLSConfiguration {
     self.minimumTLSVersion = .tlsv12
     self.certificateVerification = CertificateVerification(tlsConfig.clientCertificateVerification)
     self.trustRoots = try NIOSSLTrustRoots(tlsConfig.trustRoots)
-    self.applicationProtocols = ["grpc-exp", "h2"]
+    self.applicationProtocols = ["h2"]
 
     if let reloader = tlsConfig.certificateReloader {
       self.setCertificateReloader(reloader)
@@ -239,7 +239,7 @@ extension TLSConfiguration {
     self.minimumTLSVersion = .tlsv12
     self.certificateVerification = CertificateVerification(tlsConfig.serverCertificateVerification)
     self.trustRoots = try NIOSSLTrustRoots(tlsConfig.trustRoots)
-    self.applicationProtocols = ["grpc-exp", "h2"]
+    self.applicationProtocols = ["h2"]
 
     if let reloader = tlsConfig.certificateReloader {
       self.setCertificateReloader(reloader)

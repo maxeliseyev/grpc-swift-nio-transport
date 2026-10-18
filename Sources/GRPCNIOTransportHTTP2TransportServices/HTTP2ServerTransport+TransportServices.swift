@@ -334,7 +334,7 @@ extension NWProtocolTLS.Options {
       .TLSv12
     )
 
-    for `protocol` in ["grpc-exp", "h2"] {
+    for `protocol` in ["h2"] {
       sec_protocol_options_add_tls_application_protocol(
         self.securityProtocolOptions,
         `protocol`
